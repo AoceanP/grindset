@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -236,6 +237,57 @@ public class GrindsetTest
 		tick++;
 		MethodDetector.Result search = only(detector.onTick(tick, xp(), ctx, tick * 600L));
 		assertEquals(1, search.rewards.size());
+	}
+
+	@Test
+	public void wintertodtCollectsItsSkillsInTheArena()
+	{
+		ctx.regionId = 6462;
+		MethodDetector.Result chop = only(tick(xp("Woodcutting", 40), Collections.singletonList(item("Bruma root", 1, 0)),
+			Collections.emptyList()));
+		assertEquals("Wintertodt", chop.method);
+		assertEquals("Firemaking", chop.mainSkill);
+		MethodDetector.Result burn = only(tick(xp("Firemaking", 300), Collections.emptyList(),
+			Collections.singletonList(item("Bruma root", 1, 0))));
+		assertEquals("Wintertodt", burn.method);
+		MethodDetector.Result fix = only(tick(xp("Construction", 120), Collections.emptyList(), Collections.emptyList()));
+		assertEquals("Fixing the brazier counts too", "Wintertodt", fix.method);
+	}
+
+	@Test
+	public void foundryAndTemporossAreFoundByTheirArena()
+	{
+		ctx.regionId = 13491;
+		assertEquals("Giants' Foundry", only(tick(xp("Smithing", 5000), Collections.emptyList(), Collections.emptyList())).method);
+		ctx.regionId = 12078;
+		assertEquals("Tempoross", only(tick(xp("Fishing", 80), Collections.singletonList(item("Raw harpoonfish", 1, 0)),
+			Collections.emptyList())).method);
+		// Outside the arena the same XP is its own method again.
+		ctx.regionId = 12850;
+		assertEquals("Lobsters", only(tick(xp("Fishing", 90), Collections.singletonList(item("Raw lobster", 1, 200)),
+			Collections.emptyList())).method);
+		assertNull("Only its own skills", book.forRegion(13491, "Mining"));
+	}
+
+	@Test
+	public void minigameEndMessagesCountGames()
+	{
+		assertArrayEquals(new String[]{"Wintertodt", "Firemaking"},
+			GrindsetPlugin.gameEnded("Your subdued Wintertodt count is: <col=ff0000>412</col>."));
+		assertArrayEquals(new String[]{"Tempoross", "Fishing"}, GrindsetPlugin.gameEnded("Your Tempoross kill count is: 88."));
+		assertNull(GrindsetPlugin.gameEnded("You light a fire."));
+		assertNull(GrindsetPlugin.gameEnded(null));
+	}
+
+	@Test
+	public void cardsShowTheGoalsTabLevel()
+	{
+		assertEquals(Integer.valueOf(90), GrindsetPanel.goalFor("Fishing", "Fishing", 90, 80));
+		assertNull("Another skill's goal", GrindsetPanel.goalFor("Mining", "Fishing", 90, 80));
+		assertNull("Already there", GrindsetPanel.goalFor("Fishing", "Fishing", 80, 80));
+		assertNull("The next level has its own row", GrindsetPanel.goalFor("Fishing", "Fishing", 81, 80));
+		assertNull("99 has its own row", GrindsetPanel.goalFor("Fishing", "Fishing", 99, 80));
+		assertNull(GrindsetPanel.goalFor("Fishing", null, null, 80));
 	}
 
 	@Test

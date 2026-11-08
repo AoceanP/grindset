@@ -79,5 +79,14 @@
  "rewards": ["Abyssal pearls", "Catalytic talisman", "Elemental talisman", "Intricate pouch", "Abyssal needle",
   "Abyssal lantern", "Abyssal protector", "Ring of the elements", "Lost bag", "Tarnished locket",
   "Air rune", "Mind rune", "Water rune", "Earth rune", "Fire rune", "Body rune", "Cosmic rune", "Chaos rune",
-  "Nature rune", "Law rune", "Death rune", "Blood rune"]}
+  "Nature rune", "Law rune", "Death rune", "Blood rune"]},
+
+{"name": "Wintertodt", "skills": ["Firemaking", "Woodcutting", "Fletching", "Construction"],
+ "items": ["Bruma root", "Bruma kindling"], "minigame": true, "rewards": ["Supply crate"],
+ "regions": [6204, 6205, 6206, 6460, 6461, 6462, 6717, 6718]},
+{"name": "Tempoross", "skills": ["Fishing", "Cooking", "Construction"],
+ "items": ["Raw harpoonfish", "Harpoonfish"], "minigame": true, "rewards": ["Reward permit"],
+ "regions": [12078]},
+{"name": "Giants' Foundry", "skills": ["Smithing"], "items": [], "minigame": true,
+ "regions": [13491]}
 ]

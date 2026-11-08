@@ -309,6 +309,12 @@ final class MethodDetector
 				}
 			}
 		}
+		// In a minigame's arena, its skills go to the minigame.
+		MethodBook.Def game = book.forRegion(ctx.regionId, skill);
+		if (game != null)
+		{
+			return new String[]{game.name, game.skills.get(0)};
+		}
 		if ("Agility".equals(skill))
 		{
 			String course = courses.get(ctx.regionId);

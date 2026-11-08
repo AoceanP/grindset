@@ -312,10 +312,19 @@ public class GrindsetPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		if (event.getType() == ChatMessageType.GAMEMESSAGE && event.getMessage().contains(GOTR_GAME_END)
-			&& client.getTickCount() - lastGotrTick <= GOTR_TICKS)
+		if (event.getType() != ChatMessageType.GAMEMESSAGE)
+		{
+			return;
+		}
+		if (event.getMessage().contains(GOTR_GAME_END) && client.getTickCount() - lastGotrTick <= GOTR_TICKS)
 		{
 			stats.recordGame(MethodBook.GOTR, "Runecraft", System.currentTimeMillis());
+			return;
+		}
+		String[] game = gameEnded(event.getMessage());
+		if (game != null)
+		{
+			stats.recordGame(game[0], game[1], System.currentTimeMillis());
 		}
 	}
 
@@ -324,7 +333,9 @@ public class GrindsetPlugin extends Plugin
 	{
 		int now = client.getTickCount();
 		Player me = client.getLocalPlayer();
-		context.regionId = me == null ? -1 : me.getWorldLocation().getRegionID();
+		// Tempoross is an instance: the template's region, not the copy's, says where you are.
+		context.regionId = me == null || me.getLocalLocation() == null ? -1
+			: WorldPoint.fromLocalInstance(client, me.getLocalLocation()).getRegionID();
 		context.inGotr = now - lastGotrTick <= GOTR_TICKS;
 		context.fighting = me != null && me.getInteracting() instanceof NPC;
 		context.currentMethod = stats.getCurrent();
@@ -567,6 +578,32 @@ public class GrindsetPlugin extends Plugin
 	{
 		Widget bank = client.getWidget(InterfaceID.Bankmain.UNIVERSE);
 		return bank != null && !bank.isHidden();
+	}
+
+	/**
+	 * WHAT: The minigame a game message says you just finished, and its main skill.
+	 * WHY: "Games played" and Games/hr for Wintertodt and Tempoross, like Guardians of the Rift.
+	 * PRE: message is a game message; it may hold colour tags.
+	 * POST: Nothing changes.
+	 * RETURN: {method, skill}, or null
+	 * THROWS: Nothing.
+	 */
+	static String[] gameEnded(String message)
+	{
+		if (message == null)
+		{
+			return null;
+		}
+		String text = message.replaceAll("<[^>]*>", "");
+		if (text.startsWith("Your subdued Wintertodt count is:"))
+		{
+			return new String[]{"Wintertodt", "Firemaking"};
+		}
+		if (text.startsWith("Your Tempoross kill count is:"))
+		{
+			return new String[]{"Tempoross", "Fishing"};
+		}
+		return null;
 	}
 
 	private static boolean isGotrItem(int id)

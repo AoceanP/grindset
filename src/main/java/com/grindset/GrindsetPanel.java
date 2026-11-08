@@ -1224,6 +1224,23 @@ class GrindsetPanel extends PluginPanel
 		return wrap;
 	}
 
+	/**
+	 * WHAT: The Goals tab level to show on a card, when it's for this card's skill.
+	 * WHY: Your own target on every card of that skill, without switching tabs.
+	 * PRE: cardSkill is the card's main skill; goalSkill and goalLevel are the Goals tab picks, either may be null.
+	 * POST: Nothing changes.
+	 * RETURN: the level, or null when it's another skill, already reached, the next level, or 99 (which has its own row)
+	 * THROWS: Nothing.
+	 */
+	static Integer goalFor(String cardSkill, String goalSkill, Integer goalLevel, int currentLevel)
+	{
+		if (cardSkill == null || goalLevel == null || !cardSkill.equals(goalSkill))
+		{
+			return null;
+		}
+		return goalLevel > currentLevel + 1 && goalLevel < Format.MAX_LEVEL ? goalLevel : null;
+	}
+
 	private List<JPanel> rows(MethodStats.Snapshot s, Integer skillXp)
 	{
 		List<JPanel> rows = new ArrayList<>();
@@ -1254,6 +1271,15 @@ class GrindsetPanel extends PluginPanel
 			if (next != null)
 			{
 				rows.add(row("Next level", next, GREEN, "Hours of play at this method's XP/hr"));
+			}
+			Integer goal = goalFor(s.skill, wantedGoalSkill, (Integer) goalLevel.getSelectedItem(), level);
+			if (goal != null)
+			{
+				String toGoal = Format.timeToLevel(skillXp, goal, s.xpPerHour);
+				if (toGoal != null)
+				{
+					rows.add(row("Time to " + goal, toGoal, GREEN, "Hours of play to your Goals tab level at this method's XP/hr"));
+				}
 			}
 			if (level + 1 < Format.MAX_LEVEL)
 			{

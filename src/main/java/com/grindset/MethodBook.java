@@ -48,6 +48,8 @@ final class MethodBook
 		List<String> items;
 		List<String> rewards;
 		boolean minigame;
+		/** Map regions where every XP drop in its skills belongs to this minigame. */
+		List<Integer> regions;
 
 		boolean hasSkill(String skill)
 		{
@@ -62,6 +64,7 @@ final class MethodBook
 	private final Map<String, Def> byItem = new HashMap<>();
 	private final Map<String, List<Def>> byReward = new HashMap<>();
 	private final Map<String, Def> byName = new HashMap<>();
+	private final Map<Integer, Def> byRegion = new HashMap<>();
 
 	MethodBook(List<Def> defs)
 	{
@@ -79,6 +82,13 @@ final class MethodBook
 			for (String item : d.items == null ? Collections.<String>emptyList() : d.items)
 			{
 				byItem.put(key(item), d);
+			}
+			for (Integer region : d.regions == null ? Collections.<Integer>emptyList() : d.regions)
+			{
+				if (region != null)
+				{
+					byRegion.put(region, d);
+				}
 			}
 			for (String reward : d.rewards == null ? Collections.<String>emptyList() : d.rewards)
 			{
@@ -118,6 +128,21 @@ final class MethodBook
 	{
 		List<Def> defs = byReward.get(key(itemName));
 		return defs != null && defs.contains(byName.get(GOTR));
+	}
+
+	/**
+	 * WHAT: The minigame played in a map region, if it trains this skill.
+	 * WHY: Wintertodt, Tempoross and Giants' Foundry give XP for many small actions; in their arena
+	 * all of it belongs to the minigame, not to "Bruma root" or "Raw harpoonfish" cards.
+	 * PRE: skill is a skill name, e.g. "Firemaking".
+	 * POST: Nothing changes.
+	 * RETURN: the minigame, or null
+	 * THROWS: Nothing.
+	 */
+	Def forRegion(int regionId, String skill)
+	{
+		Def d = byRegion.get(regionId);
+		return d != null && d.hasSkill(skill) ? d : null;
 	}
 
 	Def byName(String name)

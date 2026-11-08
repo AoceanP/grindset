@@ -19,7 +19,7 @@ The skill and level you pick on Goals and Compare are remembered. Click a method
 - **GP/hr is profit:** what you make minus what you use up. Cooking, fletching and alching show real profit. Firemaking and Prayer show what they cost, in red.
 - **Banking included:** GP/hr counts the whole trip and updates every 5 ticks. When banking makes a real difference, the card also shows the rate at the spot only.
 - **Other skills it trains**, such as barbarian fishing's Agility and Strength, or the Mining and Crafting in Guardians of the Rift.
-- **Time to your next level and to 99** at that method's XP/hr, in hours of play.
+- **Time to your next level, to your Goals tab level and to 99** at that method's XP/hr, in hours of play.
 - **Your level** and how far you are through it, as a bar.
 - **Best session:** your best XP/hr for the method in one session of at least 10 minutes.
 - **Dropping:** power-chopping and 3-tick fishing are spotted, so the card says "dropping" instead of showing a made-up GP/hr.
@@ -33,7 +33,7 @@ The skill and level you pick on Goals and Compare are remembered. Click a method
 | Thieving, non-combat Magic | What you click | Pickpocket Master Farmer, High Level Alchemy |
 | Agility | The course | Seers' Village rooftops |
 
-Guardians of the Rift and the Motherlode Mine are tracked as minigames, including the rewards you collect afterwards.
+Guardians of the Rift, Wintertodt, Tempoross, Giants' Foundry and the Motherlode Mine are tracked as minigames, including the rewards you collect afterwards. In a minigame's arena, all of its skills count towards it (Wintertodt's Woodcutting, Fletching and Construction go to Wintertodt), and finished games are counted for Games played and Games/hr.
 
 Combat skills are left to combat trackers. Combat XP still counts when it comes with a skilling method, such as barbarian fishing's Strength.
 
