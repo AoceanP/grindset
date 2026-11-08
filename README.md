@@ -2,13 +2,25 @@
 
 Skilling tracked **by method**, not by skill. Karambwans, barbarian fishing, Master Farmer pickpocketing and High Level Alchemy each get their own card, with your own rates.
 
+![The Methods, Goals and Compare tabs](images/tabs.png)
+
+## Three tabs
+
+- **Methods:** a card for every method. The one you're doing is open at the top; the rest fold into one line each and open on a click.
+- **Goals:** pick a skill and a level, and see how many hours of play each of your methods takes to get there, fastest first, with the profit you'd make on the way.
+- **Compare:** a skill's methods side by side in XP/hr, GP/hr and items per hour, with the best in each column highlighted. Sort by any of the three.
+
+The skill and level you pick on Goals and Compare are remembered. Click a method on either tab to open its card.
+
 ## Every card shows
 
+- **Where you're doing it**, such as Piscatorial or Otto's Grotto, under the method's name.
 - **XP/hr**, **GP/hr** and items per hour (catch, logs, ore, runes, made, used or actions).
 - **GP/hr is profit:** what you make minus what you use up. Cooking, fletching and alching show real profit. Firemaking and Prayer show what they cost, in red.
 - **Banking included:** GP/hr counts the whole trip and updates every 5 ticks. When banking makes a real difference, the card also shows the rate at the spot only.
 - **Other skills it trains**, such as barbarian fishing's Agility and Strength, or the Mining and Crafting in Guardians of the Rift.
-- **Time to your next level and to 99** at that method's XP/hr.
+- **Time to your next level and to 99** at that method's XP/hr, in hours of play.
+- **Your level** and how far you are through it, as a bar.
 - **Best session:** your best XP/hr for the method in one session of at least 10 minutes.
 - **Dropping:** power-chopping and 3-tick fishing are spotted, so the card says "dropping" instead of showing a made-up GP/hr.
 

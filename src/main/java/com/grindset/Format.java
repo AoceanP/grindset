@@ -98,12 +98,11 @@ final class Format
 		{
 			return "<1m";
 		}
-		long days = minutes / (60 * 24);
-		long h = (minutes / 60) % 24;
 		long m = minutes % 60;
-		if (days > 0)
+		// Hours of play, not days: "12d 8h" read like calendar days.
+		if (minutes >= 24 * 60)
 		{
-			return days + "d " + h + "h";
+			return String.format(Locale.US, "%,dh", Math.round(minutes / 60.0));
 		}
 		return minutes >= 60 ? (minutes / 60) + "h " + m + "m" : m + "m";
 	}

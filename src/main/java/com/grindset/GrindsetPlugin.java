@@ -132,6 +132,8 @@ public class GrindsetPlugin extends Plugin
 	private GrindsetOverlay overlay;
 
 	private final MethodStats stats = new MethodStats();
+	// Region id to the skilling spot it's in, from areas.json.
+	private final Map<Integer, String> areas = new HashMap<>();
 	private MethodBook book;
 	private MethodDetector detector;
 	private GrindsetPanel panel;
@@ -174,6 +176,14 @@ public class GrindsetPlugin extends Plugin
 			courses.forEach((region, name) -> byRegion.put(Integer.parseInt(region), name));
 		}
 		detector = new MethodDetector(book, byRegion);
+		Map<String, String> spots = loadResource("areas.json", new TypeToken<Map<String, String>>()
+		{
+		}.getType());
+		areas.clear();
+		if (spots != null)
+		{
+			spots.forEach((region, name) -> areas.put(Integer.parseInt(region), name));
+		}
 
 		panel = new GrindsetPanel(this, config, itemManager, skillIconManager);
 		BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
@@ -323,9 +333,11 @@ public class GrindsetPlugin extends Plugin
 		long millis = System.currentTimeMillis();
 		Map<String, Long> xp = new HashMap<>(xpThisTick);
 		xpThisTick.clear();
+		String area = areas.get(context.regionId);
 		for (MethodDetector.Result r : detector.onTick(now, xp, context, millis))
 		{
 			r.xp.forEach((skill, gain) -> stats.recordXp(r.method, r.mainSkill, skill, gain, millis));
+			stats.setArea(r.method, area);
 			for (MethodDetector.Item i : r.made)
 			{
 				stats.recordMade(r.method, r.mainSkill, i.id, i.name, i.quantity, i.unitPrice, i.haPrice, false, millis);
@@ -480,6 +492,28 @@ public class GrindsetPlugin extends Plugin
 		configManager.setConfiguration(GrindsetConfig.GROUP, "hiddenMethods", String.join("\n", hidden));
 	}
 
+	/**
+	 * WHAT: Saves the Goals and Compare picks.
+	 * WHY: So the tabs open on the skill and level you chose last time.
+	 * PRE: Any thread; skills may be null when none is picked yet.
+	 * POST: The picks are in the settings; unchanged values aren't written again.
+	 * RETURN: Nothing.
+	 * THROWS: Nothing.
+	 */
+	void savePicks(String goalSkill, int goalLevel, String compareSkill, int compareSort)
+	{
+		if (goalSkill != null)
+		{
+			configManager.setConfiguration(GrindsetConfig.GROUP, "goalSkill", goalSkill);
+		}
+		configManager.setConfiguration(GrindsetConfig.GROUP, "goalLevel", goalLevel);
+		if (compareSkill != null)
+		{
+			configManager.setConfiguration(GrindsetConfig.GROUP, "compareSkill", compareSkill);
+		}
+		configManager.setConfiguration(GrindsetConfig.GROUP, "compareSort", compareSort);
+	}
+
 	void showAllMethods()
 	{
 		configManager.unsetConfiguration(GrindsetConfig.GROUP, "hiddenMethods");
@@ -587,18 +621,7 @@ public class GrindsetPlugin extends Plugin
 
 	private MethodStats.Snapshot currentMethod()
 	{
-		String current = stats.getCurrent();
-		if (current == null)
-		{
-			return null;
-		}
-		for (MethodStats.Snapshot s : getMethods())
-		{
-			if (s.name.equals(current))
-			{
-				return s;
-			}
-		}
-		return null;
+		// Only the method being done; snapshotting every method each tick grew with the list.
+		return stats.currentSnapshot(config.price() == GrindsetConfig.Price.HIGH_ALCHEMY, config.countDropped());
 	}
 }

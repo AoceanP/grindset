@@ -442,6 +442,61 @@ public class GrindsetTest
 		assertEquals("41m", Format.duration(41 / 60.0));
 		assertNull(Format.timeToNextLevel(13_034_431, 50_000));
 		assertEquals("1h 0m", Format.timeToLevel(0, 2, 83));
+		// Long goals read as hours of play, not calendar days.
+		assertEquals("296h", Format.duration(296.2));
+		assertEquals("1,250h", Format.duration(1250));
+		assertEquals("23h 59m", Format.duration(23 + 59 / 60.0));
+	}
+
+	private static javax.swing.JPanel card(String method, String rate)
+	{
+		javax.swing.JPanel card = new javax.swing.JPanel(new java.awt.BorderLayout());
+		card.setName(method);
+		card.add(new javax.swing.JLabel(method), java.awt.BorderLayout.NORTH);
+		card.add(new javax.swing.JLabel(rate), java.awt.BorderLayout.CENTER);
+		return card;
+	}
+
+	@Test
+	public void overlayOnlySnapshotsTheCurrentMethod()
+	{
+		MethodStats s = stats();
+		assertNull(s.currentSnapshot(false, false));
+		s.recordXp("Teak logs", "Woodcutting", "Woodcutting", 85, now);
+		s.recordXp("Karambwans", "Fishing", "Fishing", 50, now);
+		MethodStats.Snapshot current = s.currentSnapshot(false, false);
+		assertEquals("Karambwans", current.name);
+		assertEquals(get(s, "Karambwans").xp, current.xp);
+	}
+
+	@Test
+	public void panelKeepsRowsThatDidNotChange()
+	{
+		javax.swing.JPanel list = new javax.swing.JPanel();
+		List<java.awt.Component> first = Arrays.asList(new javax.swing.JLabel("Teak logs"), new javax.swing.JLabel("62.1K XP"));
+		GrindsetPanel.sync(list, first);
+		java.awt.Component kept = list.getComponent(0);
+
+		// Same first row, new rate: only the second row is swapped.
+		GrindsetPanel.sync(list, Arrays.asList(new javax.swing.JLabel("Teak logs"), new javax.swing.JLabel("63.0K XP")));
+		assertTrue(kept == list.getComponent(0));
+		assertEquals("63.0K XP", ((javax.swing.JLabel) list.getComponent(1)).getText());
+
+		// A card whose rate changed stays; only the label inside it is swapped.
+		GrindsetPanel.sync(list, Collections.singletonList(card("Teak logs", "62.1K XP")));
+		java.awt.Component card = list.getComponent(0);
+		java.awt.Component name = ((javax.swing.JPanel) card).getComponent(0);
+		GrindsetPanel.sync(list, Collections.singletonList(card("Teak logs", "63.0K XP")));
+		assertTrue(card == list.getComponent(0));
+		assertTrue(name == ((javax.swing.JPanel) card).getComponent(0));
+		assertEquals("63.0K XP", ((javax.swing.JLabel) ((javax.swing.JPanel) card).getComponent(1)).getText());
+		// Another method's card is never kept for this one.
+		GrindsetPanel.sync(list, Collections.singletonList(card("Karambwans", "63.0K XP")));
+		assertFalse(card == list.getComponent(0));
+
+		GrindsetPanel.sync(list, Collections.singletonList(new javax.swing.JLabel("Karambwans")));
+		assertEquals(1, list.getComponentCount());
+		assertEquals("Karambwans", ((javax.swing.JLabel) list.getComponent(0)).getText());
 	}
 
 	@Test
@@ -456,5 +511,37 @@ public class GrindsetTest
 			}
 		}
 		assertTrue(missing.toString(), missing.isEmpty());
+	}
+
+	// ---- 1.1: locations ----
+
+	@Test
+	public void methodsRememberWhereTheyWereDone()
+	{
+		MethodStats s = stats();
+		fish(s);
+		s.setArea("Karambwans", "Piscatorial");
+		assertEquals("Piscatorial", get(s, "Karambwans").area);
+		MethodStats loaded = stats();
+		loaded.importState(Arrays.asList(GSON.fromJson(GSON.toJson(s.exportState()), MethodStats.Saved[].class)));
+		assertEquals("Piscatorial", get(loaded, "Karambwans").area);
+		// A spot that isn't known leaves it as it was.
+		loaded.setArea("Karambwans", null);
+		assertEquals("Piscatorial", get(loaded, "Karambwans").area);
+	}
+
+	@Test
+	public void bundledSpotsResolve()
+	{
+		Map<String, String> areas = GSON.fromJson(new InputStreamReader(GrindsetPlugin.class.getResourceAsStream("areas.json"),
+			StandardCharsets.UTF_8), new TypeToken<Map<String, String>>()
+		{
+		}.getType());
+		assertTrue(areas.size() > 200);
+		assertEquals("Piscatorial", areas.get("9273"));
+		assertEquals("Motherlode Mine", areas.get("14936"));
+		assertEquals("Wintertodt", areas.get("6462"));
+		assertEquals("Blast Furnace", areas.get("7757"));
+		assertEquals("Temple of the Eye", areas.get("14484"));
 	}
 }

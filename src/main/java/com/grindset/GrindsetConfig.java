@@ -106,4 +106,48 @@ public interface GrindsetConfig extends Config
 	{
 		return "";
 	}
+
+	@ConfigItem(
+		keyName = "goalSkill",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default String goalSkill()
+	{
+		return "";
+	}
+
+	@ConfigItem(
+		keyName = "goalLevel",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default int goalLevel()
+	{
+		return 99;
+	}
+
+	@ConfigItem(
+		keyName = "compareSkill",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default String compareSkill()
+	{
+		return "";
+	}
+
+	@ConfigItem(
+		keyName = "compareSort",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default int compareSort()
+	{
+		return 0;
+	}
 }

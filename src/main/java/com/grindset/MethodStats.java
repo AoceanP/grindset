@@ -76,6 +76,8 @@ final class MethodStats
 	{
 		final String name;
 		String skill;
+		// Where it was last done: "Piscatorial", or null for a spot that isn't known.
+		String area;
 		final Map<String, Long> xp = new LinkedHashMap<>();
 		final Map<Integer, Line> made = new LinkedHashMap<>();
 		final Map<Integer, Line> used = new LinkedHashMap<>();
@@ -108,6 +110,7 @@ final class MethodStats
 	{
 		String name;
 		String skill;
+		String area;
 		Map<String, Long> xp;
 		List<SavedLine> made;
 		List<SavedLine> used;
@@ -138,6 +141,7 @@ final class MethodStats
 	{
 		final String name;
 		final String skill;
+		final String area;
 		final long xp;
 		final double xpPerHour;
 		/** Other skills this method trains, with their XP/hr. */
@@ -164,6 +168,7 @@ final class MethodStats
 		{
 			name = e.name;
 			skill = e.skill;
+			area = e.area;
 			xp = e.mainXp();
 			long active = e.activity.getActiveMillis();
 			xpPerHour = ActivityTimer.perHour(xp, active);
@@ -309,6 +314,19 @@ final class MethodStats
 	}
 
 	/**
+	 * Where the method is being done, for its card: "Piscatorial".
+	 */
+	synchronized void setArea(String method, String area)
+	{
+		Entry e = method == null || area == null ? null : entries.get(method);
+		if (e != null && !area.equals(e.area))
+		{
+			e.area = area;
+			revision++;
+		}
+	}
+
+	/**
 	 * Items of this method dropped on the floor (power-training).
 	 */
 	synchronized void recordDropped(String method, int itemId, long quantity)
@@ -442,6 +460,20 @@ final class MethodStats
 		return out;
 	}
 
+	/**
+	 * WHAT: A snapshot of only the method being done.
+	 * WHY: The overlay needs it every tick, and snapshotting every method grew with the list.
+	 * PRE: None.
+	 * POST: Nothing changes.
+	 * RETURN: the method being done, or null if there isn't one
+	 * THROWS: Nothing.
+	 */
+	synchronized Snapshot currentSnapshot(boolean highAlchemy, boolean countDropped)
+	{
+		Entry e = current == null ? null : entries.get(current);
+		return e == null ? null : new Snapshot(e, highAlchemy, countDropped, true, clock.getAsLong());
+	}
+
 	synchronized void remove(String method)
 	{
 		if (entries.remove(method) != null)
@@ -494,6 +526,7 @@ final class MethodStats
 			Saved s = new Saved();
 			s.name = e.name;
 			s.skill = e.skill;
+			s.area = e.area;
 			s.xp = new LinkedHashMap<>(e.xp);
 			s.made = save(e.made);
 			s.used = save(e.used);
@@ -541,6 +574,7 @@ final class MethodStats
 				continue;
 			}
 			Entry e = new Entry(s.name, s.skill);
+			e.area = s.area;
 			if (s.xp != null)
 			{
 				s.xp.forEach((skill, n) ->
