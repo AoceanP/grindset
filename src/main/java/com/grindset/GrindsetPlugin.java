@@ -147,6 +147,8 @@ public class GrindsetPlugin extends Plugin
 	private Map<Integer, Integer> lastInventory;
 	private final MethodDetector.Context context = new MethodDetector.Context();
 	private int lastGotrTick = -1000;
+	// Whether the bank was open last tick, so opening it ends the trip once.
+	private boolean bankWasOpen;
 	private int ticks;
 	private volatile int rateTick;
 	// The method being done, for the overlay. Updated every tick.
@@ -342,6 +344,13 @@ public class GrindsetPlugin extends Plugin
 		context.currentLastMillis = stats.lastMillis(context.currentMethod);
 
 		long millis = System.currentTimeMillis();
+		boolean bankOpen = isBankOpen();
+		if (bankOpen && !bankWasOpen)
+		{
+			// Banking ends the trip for the trip log.
+			stats.endTrip(millis);
+		}
+		bankWasOpen = bankOpen;
 		Map<String, Long> xp = new HashMap<>(xpThisTick);
 		xpThisTick.clear();
 		String area = areas.get(context.regionId);

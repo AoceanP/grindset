@@ -44,6 +44,11 @@ final class MethodStats
 {
 	/** A session needs this much activity before it can be a method's best. */
 	static final long BEST_MIN_MILLIS = 10 * 60_000L;
+	/** Each method keeps its latest trips and sessions, newest first. */
+	static final int TRIPS_KEPT = 10;
+	static final int SESSIONS_KEPT = 10;
+	/** A session needs this much activity to go in the history. */
+	static final long SESSION_MIN_MILLIS = 5 * 60_000L;
 	/** Dropping at least this share of what's gathered means the method is power-training. */
 	static final double DROPPING_SHARE = 0.8;
 
@@ -72,6 +77,40 @@ final class MethodStats
 		}
 	}
 
+	/**
+	 * One trip: from leaving the bank (or starting the method) to banking again, switching method or
+	 * logging out. Plain data, saved as is.
+	 */
+	static final class Trip
+	{
+		long endMillis;
+		long millis;
+		long xp;
+		// Profit at Grand Exchange and at High Alchemy prices: made minus used.
+		long gpValue;
+		long haValue;
+
+		long value(boolean highAlchemy)
+		{
+			return highAlchemy ? haValue : gpValue;
+		}
+	}
+
+	/**
+	 * One login session's play at a method. Plain data, saved as is.
+	 */
+	static final class Session
+	{
+		long endMillis;
+		long activeMillis;
+		long xp;
+
+		double xpPerHour()
+		{
+			return ActivityTimer.perHour(xp, activeMillis);
+		}
+	}
+
 	private static final class Entry
 	{
 		final String name;
@@ -90,6 +129,13 @@ final class MethodStats
 		// This session (since logging in): not saved.
 		long sessionXp;
 		final ActivityTimer session = new ActivityTimer();
+		// The trip going on now, and the latest trips and sessions, newest first.
+		long tripStart = -1;
+		long tripXp;
+		long tripGp;
+		long tripHa;
+		final List<Trip> trips = new ArrayList<>();
+		final List<Session> sessions = new ArrayList<>();
 
 		Entry(String name, String skill)
 		{
@@ -122,6 +168,8 @@ final class MethodStats
 		long fightMillis;
 		int games;
 		double bestXpPerHour;
+		List<Trip> trips;
+		List<Session> sessions;
 	}
 
 	static final class SavedLine
@@ -163,6 +211,9 @@ final class MethodStats
 		final long lastMillis;
 		/** The item that best shows the method, for its icon: what it makes most of, or uses most. */
 		final int iconItemId;
+		/** The latest trips and sessions, newest first. */
+		final List<Trip> trips;
+		final List<Session> sessions;
 
 		Snapshot(Entry e, boolean highAlchemy, boolean countDropped, boolean current, long nowMillis)
 		{
@@ -221,6 +272,8 @@ final class MethodStats
 				icon = mostOf(e.used);
 			}
 			iconItemId = icon;
+			trips = new ArrayList<>(e.trips);
+			sessions = new ArrayList<>(e.sessions);
 		}
 
 		private static boolean isCoins(Line line)
@@ -263,6 +316,7 @@ final class MethodStats
 		if (skill.equals(e.skill))
 		{
 			e.sessionXp += xp;
+			e.tripXp += xp;
 			e.actions++;
 		}
 		mark(e, nowMillis);
@@ -280,6 +334,8 @@ final class MethodStats
 		}
 		Entry e = entry(method, skill);
 		add(e.made, itemId, itemName, quantity, unitPrice, haPrice, reward);
+		e.tripGp += quantity * unitPrice;
+		e.tripHa += quantity * haPrice;
 		mark(e, nowMillis);
 	}
 
@@ -295,6 +351,8 @@ final class MethodStats
 		}
 		Entry e = entry(method, skill);
 		add(e.used, itemId, itemName, quantity, unitPrice, haPrice, false);
+		e.tripGp -= quantity * unitPrice;
+		e.tripHa -= quantity * haPrice;
 		mark(e, nowMillis);
 	}
 
@@ -367,11 +425,61 @@ final class MethodStats
 			if (last != null)
 			{
 				last.trip.end();
+				closeTrip(last, last.activity.getLastMillis());
 			}
+		}
+		if (e.tripStart < 0)
+		{
+			e.tripStart = nowMillis;
 		}
 		current = e.name;
 		e.trip.mark(nowMillis);
 		revision++;
+	}
+
+	/**
+	 * WHAT: Ends the current method's trip, as when you open the bank.
+	 * WHY: The trip log shows each trip from leaving the bank to banking again.
+	 * PRE: nowMillis is the current time.
+	 * POST: The trip is in the method's log if it gave XP; the next action starts a new one.
+	 * RETURN: Nothing.
+	 * THROWS: Nothing.
+	 */
+	synchronized void endTrip(long nowMillis)
+	{
+		Entry e = current == null ? null : entries.get(current);
+		if (e != null)
+		{
+			closeTrip(e, nowMillis);
+		}
+	}
+
+	private void closeTrip(Entry e, long endMillis)
+	{
+		if (e.tripStart >= 0 && e.tripXp > 0 && endMillis > e.tripStart)
+		{
+			Trip t = new Trip();
+			t.endMillis = endMillis;
+			t.millis = endMillis - e.tripStart;
+			t.xp = e.tripXp;
+			t.gpValue = e.tripGp;
+			t.haValue = e.tripHa;
+			keep(e.trips, t, TRIPS_KEPT);
+			revision++;
+		}
+		e.tripStart = -1;
+		e.tripXp = 0;
+		e.tripGp = 0;
+		e.tripHa = 0;
+	}
+
+	private static <T> void keep(List<T> list, T item, int max)
+	{
+		list.add(0, item);
+		while (list.size() > max)
+		{
+			list.remove(list.size() - 1);
+		}
 	}
 
 	/**
@@ -419,10 +527,22 @@ final class MethodStats
 		if (last != null)
 		{
 			last.trip.end();
+			closeTrip(last, last.activity.getLastMillis());
 		}
 		current = null;
+		long now = clock.getAsLong();
 		for (Entry e : entries.values())
 		{
+			// Sessions long enough to mean something go in the history.
+			if (e.session.getActiveMillis() >= SESSION_MIN_MILLIS && e.sessionXp > 0)
+			{
+				Session done = new Session();
+				done.endMillis = now;
+				done.activeMillis = e.session.getActiveMillis();
+				done.xp = e.sessionXp;
+				keep(e.sessions, done, SESSIONS_KEPT);
+				revision++;
+			}
 			e.sessionXp = 0;
 			e.session.reset();
 		}
@@ -538,6 +658,8 @@ final class MethodStats
 			s.fightMillis = e.trip.getFightMillis();
 			s.games = e.games;
 			s.bestXpPerHour = e.bestXpPerHour;
+			s.trips = new ArrayList<>(e.trips);
+			s.sessions = new ArrayList<>(e.sessions);
 			out.add(s);
 		}
 		return out;
@@ -602,6 +724,20 @@ final class MethodStats
 			e.trip.restore(s.tripMillis, s.fightMillis);
 			e.games = Math.max(0, s.games);
 			e.bestXpPerHour = Math.max(0, s.bestXpPerHour);
+			for (Trip t : s.trips == null ? Collections.<Trip>emptyList() : s.trips)
+			{
+				if (t != null && t.millis > 0 && e.trips.size() < TRIPS_KEPT)
+				{
+					e.trips.add(t);
+				}
+			}
+			for (Session x : s.sessions == null ? Collections.<Session>emptyList() : s.sessions)
+			{
+				if (x != null && x.activeMillis > 0 && e.sessions.size() < SESSIONS_KEPT)
+				{
+					e.sessions.add(x);
+				}
+			}
 			entries.put(e.name, e);
 		}
 		revision++;

@@ -805,7 +805,8 @@ class GrindsetPanel extends PluginPanel
 		StringBuilder sb = new StringBuilder();
 		for (MethodStats.Snapshot s : methods)
 		{
-			sb.append(s.name).append(s.xp).append(s.value).append(s.now).append(s.away).append(s.games).append(';');
+			sb.append(s.name).append(s.xp).append(s.value).append(s.now).append(s.away).append(s.games)
+				.append(s.trips.size()).append(s.trips.isEmpty() ? 0 : s.trips.get(0).endMillis).append(s.sessions.size()).append(';');
 		}
 		return sb.toString();
 	}
@@ -1241,6 +1242,38 @@ class GrindsetPanel extends PluginPanel
 		return goalLevel > currentLevel + 1 && goalLevel < Format.MAX_LEVEL ? goalLevel : null;
 	}
 
+	/** How many trips and sessions the open card lists. */
+	static final int SHOWN_TRIPS = 3;
+	static final int SHOWN_SESSIONS = 5;
+
+	/**
+	 * WHAT: One trip in the log: "+42.1K XP · 310K GP".
+	 * WHY: The open card's Recent trips rows.
+	 * PRE: gp is the trip's profit, negative for a loss.
+	 * POST: Nothing changes.
+	 * RETURN: the text
+	 * THROWS: Nothing.
+	 */
+	static String tripText(long xp, long gp)
+	{
+		String money = gp == 0 ? "" : " · " + (gp < 0 ? "-" : "") + Format.compact(Math.abs(gp)) + " GP";
+		return "+" + Format.compact(xp) + " XP" + money;
+	}
+
+	/**
+	 * WHAT: A short date for the history rows: "Nov 11".
+	 * WHY: Sessions and trips are listed by the day they ended.
+	 * PRE: millis is a time since the epoch.
+	 * POST: Nothing changes.
+	 * RETURN: the date, in your computer's time zone
+	 * THROWS: Nothing.
+	 */
+	static String sessionDate(long millis)
+	{
+		return java.time.format.DateTimeFormatter.ofPattern("MMM d", Locale.US)
+			.format(java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()));
+	}
+
 	private List<JPanel> rows(MethodStats.Snapshot s, Integer skillXp)
 	{
 		List<JPanel> rows = new ArrayList<>();
@@ -1294,6 +1327,28 @@ class GrindsetPanel extends PluginPanel
 		{
 			rows.add(row("Best session", Format.compact(s.bestXpPerHour) + " XP/hr", TEXT,
 				"Your best XP/hr for this method in one session of at least 10 minutes"));
+		}
+		boolean highAlchemy = config.price() == GrindsetConfig.Price.HIGH_ALCHEMY;
+		if (!s.trips.isEmpty())
+		{
+			rows.add(row("Recent trips", "", TEXT, "Each trip runs from leaving the bank to banking again"));
+			for (int i = 0; i < Math.min(SHOWN_TRIPS, s.trips.size()); i++)
+			{
+				MethodStats.Trip t = s.trips.get(i);
+				long gp = t.value(highAlchemy);
+				rows.add(row("  " + Format.duration(t.millis / 3_600_000.0), tripText(t.xp, gp), gp < 0 ? LOSS : MUTED,
+					"A trip that ended " + sessionDate(t.endMillis)));
+			}
+		}
+		if (!s.sessions.isEmpty())
+		{
+			rows.add(row("Recent sessions", "", TEXT, "Your latest logins at this method of 5 minutes or more"));
+			for (int i = 0; i < Math.min(SHOWN_SESSIONS, s.sessions.size()); i++)
+			{
+				MethodStats.Session x = s.sessions.get(i);
+				rows.add(row("  " + sessionDate(x.endMillis), Format.duration(x.activeMillis / 3_600_000.0) + " · "
+					+ Format.compact(x.xpPerHour()) + " XP/hr", MUTED, "Hours of play that session, and your XP/hr"));
+			}
 		}
 		return rows;
 	}

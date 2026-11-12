@@ -22,6 +22,8 @@ The skill and level you pick on Goals and Compare are remembered. Click a method
 - **Time to your next level, to your Goals tab level and to 99** at that method's XP/hr, in hours of play.
 - **Your level** and how far you are through it, as a bar.
 - **Best session:** your best XP/hr for the method in one session of at least 10 minutes.
+- **Recent trips:** your last three trips, each from leaving the bank to banking again, with how long it took, the XP and the profit.
+- **Recent sessions:** your last five logins at the method (5 minutes or more), with hours of play and XP/hr, so you can see if you're getting faster.
 - **Dropping:** power-chopping and 3-tick fishing are spotted, so the card says "dropping" instead of showing a made-up GP/hr.
 
 ## How methods are recognised
@@ -33,7 +35,7 @@ The skill and level you pick on Goals and Compare are remembered. Click a method
 | Thieving, non-combat Magic | What you click | Pickpocket Master Farmer, High Level Alchemy |
 | Agility | The course | Seers' Village rooftops |
 
-Guardians of the Rift, Wintertodt, Tempoross, Giants' Foundry and the Motherlode Mine are tracked as minigames, including the rewards you collect afterwards. In a minigame's arena, all of its skills count towards it (Wintertodt's Woodcutting, Fletching and Construction go to Wintertodt), and finished games are counted for Games played and Games/hr.
+Guardians of the Rift, Wintertodt, Tempoross, Giants' Foundry, Hallowed Sepulchre, Volcanic Mine and the Motherlode Mine are tracked as minigames, including the rewards you collect afterwards. In a minigame's arena, all of its skills count towards it (Wintertodt's Woodcutting, Fletching and Construction go to Wintertodt), and finished games are counted for Games played and Games/hr.
 
 Combat skills are left to combat trackers. Combat XP still counts when it comes with a skilling method, such as barbarian fishing's Strength.
 

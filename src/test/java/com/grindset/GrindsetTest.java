@@ -259,7 +259,7 @@ public class GrindsetTest
 	{
 		ctx.regionId = 13491;
 		assertEquals("Giants' Foundry", only(tick(xp("Smithing", 5000), Collections.emptyList(), Collections.emptyList())).method);
-		ctx.regionId = 12078;
+		ctx.regionId = 12076;
 		assertEquals("Tempoross", only(tick(xp("Fishing", 80), Collections.singletonList(item("Raw harpoonfish", 1, 0)),
 			Collections.emptyList())).method);
 		// Outside the arena the same XP is its own method again.
@@ -267,6 +267,15 @@ public class GrindsetTest
 		assertEquals("Lobsters", only(tick(xp("Fishing", 90), Collections.singletonList(item("Raw lobster", 1, 200)),
 			Collections.emptyList())).method);
 		assertNull("Only its own skills", book.forRegion(13491, "Mining"));
+	}
+
+	@Test
+	public void sepulchreAndVolcanicMineAreFoundByTheirArena()
+	{
+		ctx.regionId = 9563;
+		assertEquals("Hallowed Sepulchre", only(tick(xp("Agility", 400), Collections.emptyList(), Collections.emptyList())).method);
+		ctx.regionId = 15263;
+		assertEquals("Volcanic Mine", only(tick(xp("Mining", 900), Collections.emptyList(), Collections.emptyList())).method);
 	}
 
 	@Test
@@ -432,6 +441,81 @@ public class GrindsetTest
 		}
 		s.updateBest();
 		assertEquals(30_300, get(s, "Karambwans").bestXpPerHour, 1);
+	}
+
+	@Test
+	public void bankingEndsATripForTheLog()
+	{
+		MethodStats s = stats();
+		fish(s);
+		s.endTrip(now + 60_000);
+		MethodStats.Snapshot k = get(s, "Karambwans");
+		assertEquals(1, k.trips.size());
+		assertEquals(5_050, k.trips.get(0).xp);
+		assertEquals(191_900, k.trips.get(0).value(false));
+		assertEquals(600_000 + 60_000, k.trips.get(0).millis);
+		// Opening the bank again with nothing done in between adds no empty trip.
+		s.endTrip(now + 120_000);
+		assertEquals(1, get(s, "Karambwans").trips.size());
+	}
+
+	@Test
+	public void theTripLogKeepsTheLatestTen()
+	{
+		MethodStats s = stats();
+		for (int i = 0; i < MethodStats.TRIPS_KEPT + 3; i++)
+		{
+			s.recordXp("Karambwans", "Fishing", "Fishing", 100 + i, now);
+			now += 60_000;
+			s.endTrip(now);
+			now += 60_000;
+		}
+		MethodStats.Snapshot k = get(s, "Karambwans");
+		assertEquals(MethodStats.TRIPS_KEPT, k.trips.size());
+		assertEquals("Newest first", 100 + MethodStats.TRIPS_KEPT + 2, k.trips.get(0).xp);
+	}
+
+	@Test
+	public void sessionsOfFiveMinutesGoInTheHistory()
+	{
+		MethodStats s = stats();
+		fish(s);
+		s.endSession();
+		MethodStats.Snapshot k = get(s, "Karambwans");
+		assertEquals(1, k.sessions.size());
+		assertEquals(30_300, k.sessions.get(0).xpPerHour(), 1);
+		assertEquals("Logging out ends the trip too", 1, k.trips.size());
+		// A two-minute session is too short to count.
+		for (int i = 0; i < 20; i++)
+		{
+			s.recordXp("Karambwans", "Fishing", "Fishing", 50, now);
+			now += 6_000;
+		}
+		s.endSession();
+		assertEquals(1, get(s, "Karambwans").sessions.size());
+	}
+
+	@Test
+	public void tripsAndSessionsAreSaved()
+	{
+		MethodStats s = stats();
+		fish(s);
+		s.endSession();
+		String json = GSON.toJson(s.exportState());
+		MethodStats loaded = stats();
+		loaded.importState(Arrays.asList(GSON.fromJson(json, MethodStats.Saved[].class)));
+		MethodStats.Snapshot k = get(loaded, "Karambwans");
+		assertEquals(1, k.trips.size());
+		assertEquals(1, k.sessions.size());
+		assertEquals(5_050, k.sessions.get(0).xp);
+	}
+
+	@Test
+	public void tripRowsReadWell()
+	{
+		assertEquals("+42.1K XP · 310K GP", GrindsetPanel.tripText(42_100, 310_000));
+		assertEquals("+5.05K XP · -12.0K GP", GrindsetPanel.tripText(5_050, -12_000));
+		assertEquals("+900 XP", GrindsetPanel.tripText(900, 0));
 	}
 
 	@Test

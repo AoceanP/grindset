@@ -86,7 +86,11 @@
  "regions": [6204, 6205, 6206, 6460, 6461, 6462, 6717, 6718]},
 {"name": "Tempoross", "skills": ["Fishing", "Cooking", "Construction"],
  "items": ["Raw harpoonfish", "Harpoonfish"], "minigame": true, "rewards": ["Reward permit"],
- "regions": [12078]},
+ "regions": [12076]},
 {"name": "Giants' Foundry", "skills": ["Smithing"], "items": [], "minigame": true,
- "regions": [13491]}
+ "regions": [13491]},
+{"name": "Hallowed Sepulchre", "skills": ["Agility"], "items": [], "minigame": true, "rewards": ["Hallowed mark"],
+ "regions": [8797, 9051, 9052, 9053, 9054, 9309, 9563, 9565, 9821, 10074, 10075, 10077]},
+{"name": "Volcanic Mine", "skills": ["Mining"], "items": [], "minigame": true,
+ "regions": [15262, 15263]}
 ]
